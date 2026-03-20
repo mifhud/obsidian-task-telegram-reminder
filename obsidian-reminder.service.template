@@ -1,0 +1,31 @@
+[Unit]
+Description=Obsidian Telegram Reminder - Task reminder service
+Documentation=https://github.com/your-username/obsidian-telegram-reminder
+After=network.target
+
+[Service]
+Type=simple
+User=%USER%
+Group=%USER%
+WorkingDirectory=%INSTALL_DIR%
+ExecStart=/usr/bin/node %INSTALL_DIR%/dist/index.js
+Restart=on-failure
+RestartSec=10
+
+# Environment
+EnvironmentFile=%INSTALL_DIR%/.env
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=true
+ReadWritePaths=%INSTALL_DIR%
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=obsidian-reminder
+
+[Install]
+WantedBy=multi-user.target

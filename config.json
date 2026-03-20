@@ -1,0 +1,12 @@
+{
+  "scanCron": "0 8 * * *",
+  "reminderDays": [2, 1, 0],
+  "reminderTime": "08:00",
+  "excludeFolders": [".obsidian", ".trash", "templates", "archive", "archives"],
+  "includeScheduled": true,
+  "dataviewFormat": false,
+  "sentLogPath": "./sent-reminders.json",
+  "timezone": "Asia/Jakarta",
+  "logLevel": "info",
+  "eveningScanCron": null
+}

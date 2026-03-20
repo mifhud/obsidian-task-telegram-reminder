@@ -1,0 +1,46 @@
+{
+  "name": "obsidian-telegram-reminder",
+  "version": "1.0.0",
+  "description": "A standalone Node.js background process that monitors an Obsidian vault for tasks with due dates and sends Telegram reminders",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dry-run": "tsx src/index.ts --dry-run",
+    "get-chat-id": "tsx scripts/get-chat-id.ts",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "lint": "eslint src/**/*.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "obsidian",
+    "telegram",
+    "reminder",
+    "tasks"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "date-fns": "^3.6.0",
+    "date-fns-tz": "^3.2.0",
+    "dotenv": "^16.4.5",
+    "glob": "^10.4.5",
+    "node-cron": "^3.0.3",
+    "node-telegram-bot-api": "^0.66.0",
+    "winston": "^3.14.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.10",
+    "@types/node-cron": "^3.0.11",
+    "@types/node-telegram-bot-api": "^0.64.7",
+    "tsx": "^4.16.2",
+    "typescript": "^5.5.3",
+    "vitest": "^2.0.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

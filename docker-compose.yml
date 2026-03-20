@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  obsidian-reminder:
+    build: .
+    container_name: obsidian-telegram-reminder
+    restart: unless-stopped
+    
+    environment:
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
+      - VAULT_PATH=/vault
+    
+    volumes:
+      # Mount your Obsidian vault (read-only)
+      - ${VAULT_PATH}:/vault:ro
+      # Persist sent reminders log
+      - ./data:/app/data
+      # Optional: custom config
+      - ./config.json:/app/config.json:ro
+
+# Example usage:
+# 1. Create .env file with TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, and VAULT_PATH
+# 2. Run: docker-compose up -d
+# 3. View logs: docker-compose logs -f
