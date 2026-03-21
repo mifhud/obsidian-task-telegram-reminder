@@ -101,23 +101,26 @@ export function evaluateTask(
         }
       }
     } else {
-      // Overdue: negative minutes within overdueMinutes window
-      if (Math.abs(minutesUntilDue) <= config.overdueMinutes) {
-        const overdueKey = generateReminderKey(
-          task.filePath,
-          task.rawLine,
-          task.dueDate,
-          -1 // Special sentinel for overdue
-        );
+      // Overdue: iterate thresholds like upcoming reminders
+      const overdueMinutes = Math.abs(minutesUntilDue);
+      for (const threshold of config.overdueMinutes) {
+        if (overdueMinutes >= threshold) {
+          const overdueKey = generateReminderKey(
+            task.filePath,
+            task.rawLine,
+            task.dueDate,
+            -threshold
+          );
 
-        if (!isReminderSent(sentLog, overdueKey)) {
-          reminders.push({
-            task,
-            reminderType: 'overdue',
-            minutesUntilDue,
-            thresholdMinutes: -1,
-            key: overdueKey,
-          });
+          if (!isReminderSent(sentLog, overdueKey)) {
+            reminders.push({
+              task,
+              reminderType: 'overdue',
+              minutesUntilDue,
+              thresholdMinutes: -threshold,
+              key: overdueKey,
+            });
+          }
         }
       }
     }

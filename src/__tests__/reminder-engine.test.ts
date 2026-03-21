@@ -39,8 +39,8 @@ const createEmptySentLog = (): SentLog => ({
 
 // Default config for tests — reminderMinutes thresholds in minutes
 const defaultConfig: Pick<AppConfig, 'reminderMinutes' | 'overdueMinutes' | 'timezone' | 'includeScheduled'> = {
-  reminderMinutes: [2880, 1440, 60, 0], // 2d, 1d, 1h, now
-  overdueMinutes: 10080, // 7 days
+  reminderMinutes: [2880, 1440, 60, 15, 0], // 2d, 1d, 1h, 15m, now
+  overdueMinutes: [4320, 1440], // 3d, 1d
   timezone: 'UTC',
   includeScheduled: false,
 };
@@ -144,27 +144,44 @@ describe('evaluateTask', () => {
   });
 
   it('should trigger overdue for tasks past due within overdueMinutes', () => {
-    // Task was due 1 day ago (1440 min overdue), overdueMinutes=10080
+    // Task was due 1 day ago (1440 min overdue), overdueMinutes=[4320, 1440]
+    // Fires for threshold 1440 (1440 >= 1440) but not 4320
     const task = createTask({ dueDate: '2026-04-14' });
     const today = new Date('2026-04-15T00:00:00Z');
     const sentLog = createEmptySentLog();
 
     const reminders = evaluateTask(task, today, defaultConfig, sentLog);
 
-    const overdueReminder = reminders.find((r) => r.reminderType === 'overdue');
-    expect(overdueReminder).toBeDefined();
-    expect(overdueReminder?.minutesUntilDue).toBe(-1440);
+    const overdueReminders = reminders.filter((r) => r.reminderType === 'overdue');
+    expect(overdueReminders.length).toBe(1);
+    expect(overdueReminders[0].thresholdMinutes).toBe(-1440);
+    expect(overdueReminders[0].minutesUntilDue).toBe(-1440);
   });
 
-  it('should not trigger overdue beyond overdueMinutes', () => {
-    // Task was due 8 days ago (11520 min), overdueMinutes=10080
-    const task = createTask({ dueDate: '2026-04-07' });
+  it('should trigger multiple overdue thresholds when sufficiently overdue', () => {
+    // Task was due 4 days ago (5760 min overdue), overdueMinutes=[4320, 1440]
+    // Fires for both 4320 (5760 >= 4320) and 1440 (5760 >= 1440)
+    const task = createTask({ dueDate: '2026-04-11' });
     const today = new Date('2026-04-15T00:00:00Z');
     const sentLog = createEmptySentLog();
 
     const reminders = evaluateTask(task, today, defaultConfig, sentLog);
 
-    expect(reminders.length).toBe(0);
+    const overdueReminders = reminders.filter((r) => r.reminderType === 'overdue');
+    expect(overdueReminders.length).toBe(2);
+    const thresholds = overdueReminders.map((r) => r.thresholdMinutes).sort((a, b) => a - b);
+    expect(thresholds).toEqual([-4320, -1440]);
+  });
+
+  it('should not trigger overdue if below minimum overdueMinutes threshold', () => {
+    // Task is 15 min overdue, minimum threshold is 1440 — no overdue reminders
+    const task = createTask({ dueDate: '2026-04-15', startTime: '23:30' });
+    const today = new Date('2026-04-15T23:45:00Z'); // 15 min overdue
+    const sentLog = createEmptySentLog();
+
+    const reminders = evaluateTask(task, today, defaultConfig, sentLog);
+
+    expect(reminders.filter((r) => r.reminderType === 'overdue').length).toBe(0);
   });
 
   it('should not create reminder if already sent', () => {

@@ -79,7 +79,7 @@ export function generateReminderKey(
 
   // Determine reminder type identifier
   const reminderTypeId =
-    thresholdMinutes < 0 ? 'overdue' : `${thresholdMinutes}m`;
+    thresholdMinutes < 0 ? `overdue-${Math.abs(thresholdMinutes)}m` : `${thresholdMinutes}m`;
 
   return `${filePath}:${lineHash}:${dueDate}:${reminderTypeId}`;
 }

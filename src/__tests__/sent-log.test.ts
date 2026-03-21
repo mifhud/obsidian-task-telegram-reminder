@@ -130,10 +130,10 @@ describe('sent-log', () => {
       expect(key1).not.toBe(key2);
     });
 
-    it('should include overdue indicator for past dates', () => {
-      const key = generateReminderKey('test.md', '- [ ] Task', '2026-04-15', -2);
+    it('should include overdue indicator with threshold for past dates', () => {
+      const key = generateReminderKey('test.md', '- [ ] Task', '2026-04-15', -1440);
 
-      expect(key).toContain('overdue');
+      expect(key).toContain('overdue-1440m');
     });
   });
 

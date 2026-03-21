@@ -92,8 +92,8 @@ export interface AppConfig {
   scanCron: string;
   /** Minutes before due datetime to send reminders (threshold-based) */
   reminderMinutes: number[];
-  /** Minutes after due datetime to continue sending overdue reminders */
-  overdueMinutes: number;
+  /** Minutes after due datetime to send overdue reminders (threshold-based, sorted descending) */
+  overdueMinutes: number[];
   /** Folders to exclude from scanning */
   excludeFolders: string[];
   /** Whether to also remind on scheduled dates */

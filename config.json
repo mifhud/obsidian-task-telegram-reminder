@@ -1,7 +1,7 @@
 {
   "scanCron": "*/15 * * * *",
-  "reminderMinutes": [1440, 60, 0],
-  "overdueMinutes": 10080,
+  "reminderMinutes": [1440, 60, 15, 0],
+  "overdueMinutes": [4320, 1440],
   "excludeFolders": [".obsidian", ".trash", "templates", "archive", "archives"],
   "includeScheduled": true,
   "dataviewFormat": false,
