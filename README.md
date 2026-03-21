@@ -92,7 +92,7 @@ Edit `config.json` to customize:
 
 ```json
 {
-  "scanCron": "0 8 * * *",
+  "scanCron": "*/15 * * * *",
   "reminderDays": [2, 1, 0],
   "timezone": "Asia/Jakarta",
   "excludeFolders": [".obsidian", ".trash", "templates"]
@@ -153,7 +153,7 @@ pm2 startup
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `scanCron` | `0 8 * * *` | Cron expression for scan schedule |
+| `scanCron` | `*/15 * * * *` | Cron expression for scan schedule |
 | `reminderDays` | `[2, 1, 0]` | Days before due to remind |
 | `timezone` | `Asia/Jakarta` | IANA timezone string |
 | `excludeFolders` | `[".obsidian", ".trash"]` | Folders to skip |

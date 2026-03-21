@@ -1,5 +1,5 @@
 {
-  "scanCron": "0 8 * * *",
+  "scanCron": "*/15 * * * *",
   "reminderDays": [2, 1, 0],
   "reminderTime": "08:00",
   "excludeFolders": [".obsidian", ".trash", "templates", "archive", "archives"],
