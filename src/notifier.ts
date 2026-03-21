@@ -6,7 +6,7 @@
 import TelegramBot from 'node-telegram-bot-api';
 import { format, parseISO } from 'date-fns';
 import type { Reminder, SendResult, Priority, ReminderType } from './types.js';
-import { groupRemindersByType } from './reminder-engine.js';
+import { groupRemindersByType, formatMinutesDuration } from './reminder-engine.js';
 
 /**
  * Priority emoji mapping for display
@@ -19,14 +19,14 @@ const PRIORITY_DISPLAY: Record<Priority, string> = {
 };
 
 /**
- * Reminder type header mapping
+ * Returns a reminder header based on type and threshold minutes
  */
-const REMINDER_HEADERS: Record<ReminderType, string> = {
-  overdue: '🚨 <b>OVERDUE</b>',
-  'due-today': '⏰ <b>DUE TODAY</b>',
-  '1-day-before': '📢 <b>Due Tomorrow!</b>',
-  '2-days-before': '🔔 <b>Reminder: 2 days until due</b>',
-};
+function getReminderHeader(reminderType: ReminderType, thresholdMinutes: number): string {
+  if (reminderType === 'overdue') return '🚨 <b>OVERDUE</b>';
+  if (reminderType === 'due-now') return '⏰ <b>DUE NOW</b>';
+  const duration = formatMinutesDuration(thresholdMinutes);
+  return `🔔 <b>Reminder: due in ${duration}</b>`;
+}
 
 /**
  * Formats a date for display
@@ -54,25 +54,24 @@ function escapeHtml(text: string): string {
  * Formats a single reminder as an HTML message
  */
 export function formatSingleReminder(reminder: Reminder): string {
-  const { task, reminderType, daysUntilDue } = reminder;
-  const header = REMINDER_HEADERS[reminderType];
+  const { task, reminderType, minutesUntilDue, thresholdMinutes } = reminder;
+  const header = getReminderHeader(reminderType, thresholdMinutes);
 
   const lines: string[] = [header, ''];
 
   // Task description
   lines.push(`📝 ${escapeHtml(task.description)}`);
 
-  // Due date
+  // Due date + time
   if (task.dueDate) {
-    lines.push(`📅 Due: ${formatDate(task.dueDate)}`);
+    const timeStr = task.startTime ? ` ${task.startTime}` : '';
+    lines.push(`📅 Due: ${formatDate(task.dueDate)}${timeStr}`);
   }
 
-  // Days indicator for overdue
-  if (daysUntilDue < 0) {
-    const daysOverdue = Math.abs(daysUntilDue);
-    lines.push(
-      `⚠️ <i>${daysOverdue} day${daysOverdue > 1 ? 's' : ''} overdue</i>`
-    );
+  // Overdue indicator
+  if (minutesUntilDue < 0) {
+    const duration = formatMinutesDuration(minutesUntilDue);
+    lines.push(`⚠️ <i>${duration} overdue</i>`);
   }
 
   // Priority (only if set)
@@ -101,7 +100,7 @@ export function formatDigestMessage(
     return formatSingleReminder(reminders[0]);
   }
 
-  const header = REMINDER_HEADERS[reminderType];
+  const header = getReminderHeader(reminderType, reminders[0].thresholdMinutes);
   const dueDate = reminders[0].task.dueDate;
   const formattedDate = dueDate ? formatDate(dueDate) : '';
 
@@ -142,13 +141,8 @@ export function formatAllReminders(reminders: Reminder[]): string[] {
   const messages: string[] = [];
   const grouped = groupRemindersByType(reminders);
 
-  // Process in priority order: overdue -> today -> tomorrow -> 2 days
-  const typeOrder: ReminderType[] = [
-    'overdue',
-    'due-today',
-    '1-day-before',
-    '2-days-before',
-  ];
+  // Process in priority order: overdue -> due-now -> upcoming
+  const typeOrder: ReminderType[] = ['overdue', 'due-now', 'upcoming'];
 
   for (const type of typeOrder) {
     const typeReminders = grouped.get(type);

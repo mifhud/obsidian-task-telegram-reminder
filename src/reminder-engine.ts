@@ -1,9 +1,9 @@
 /**
  * Reminder Engine module
- * Determines which reminders need to be sent based on task due dates and sent history
+ * Determines which reminders need to be sent based on task due datetimes and sent history
  */
 
-import { parseISO, differenceInDays, startOfDay } from 'date-fns';
+import { parseISO, differenceInMinutes, set } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
 import type { Task, Reminder, ReminderType, SentLog, AppConfig } from './types.js';
 import {
@@ -12,104 +12,146 @@ import {
 } from './sent-log.js';
 
 /**
- * Determines the reminder type based on days until due
+ * Determines the reminder type based on minutes until due
  */
-function getReminderType(daysUntilDue: number): ReminderType {
-  if (daysUntilDue < 0) {
+function getReminderType(minutesUntilDue: number): ReminderType {
+  if (minutesUntilDue < 0) {
     return 'overdue';
-  } else if (daysUntilDue === 0) {
-    return 'due-today';
-  } else if (daysUntilDue === 1) {
-    return '1-day-before';
   } else {
-    return '2-days-before';
+    return minutesUntilDue === 0 ? 'due-now' : 'upcoming';
   }
 }
 
 /**
- * Calculates days until a due date from a reference date
- * Uses timezone-aware date comparison
+ * Builds a full Date from a YYYY-MM-DD date string and an optional HH:mm time string.
+ * When no time is provided, defaults to 00:00 (start of day).
  */
-export function calculateDaysUntilDue(
+export function buildDueDateTime(
   dueDate: string,
-  referenceDate: Date,
-  timezone: string
-): number {
-  // Parse the due date as a local date in the target timezone
-  const dueDateParsed = parseISO(dueDate);
-
-  // Get today in the target timezone
-  const todayInTz = toZonedTime(referenceDate, timezone);
-  const todayStart = startOfDay(todayInTz);
-
-  // Calculate difference in days
-  return differenceInDays(dueDateParsed, todayStart);
+  startTime: string | null
+): Date {
+  const base = parseISO(dueDate);
+  if (!startTime) {
+    return set(base, { hours: 0, minutes: 0, seconds: 0, milliseconds: 0 });
+  }
+  const [hours, minutes] = startTime.split(':').map(Number);
+  return set(base, { hours, minutes, seconds: 0, milliseconds: 0 });
 }
 
 /**
- * Evaluates a single task and determines if reminders are needed
+ * Calculates minutes until a due datetime from a reference date.
+ * Uses timezone-aware comparison.
+ */
+export function calculateMinutesUntilDue(
+  dueDate: string,
+  startTime: string | null,
+  referenceDate: Date,
+  timezone: string
+): number {
+  const dueDateTimeLocal = buildDueDateTime(dueDate, startTime);
+
+  // Get the reference time in the target timezone
+  const refInTz = toZonedTime(referenceDate, timezone);
+
+  return differenceInMinutes(dueDateTimeLocal, refInTz);
+}
+
+/**
+ * Evaluates a single task and determines if reminders are needed.
+ * Uses a threshold approach: for each value in reminderMinutes, fire when
+ * minutesUntilDue <= threshold and that threshold key hasn't been sent yet.
  */
 export function evaluateTask(
   task: Task,
   today: Date,
-  config: Pick<AppConfig, 'reminderDays' | 'timezone' | 'includeScheduled'>,
+  config: Pick<AppConfig, 'reminderMinutes' | 'overdueMinutes' | 'timezone' | 'includeScheduled'>,
   sentLog: SentLog
 ): Reminder[] {
   const reminders: Reminder[] = [];
 
   // Check due date reminders
   if (task.dueDate) {
-    const daysUntilDue = calculateDaysUntilDue(task.dueDate, today, config.timezone);
+    const minutesUntilDue = calculateMinutesUntilDue(
+      task.dueDate,
+      task.startTime,
+      today,
+      config.timezone
+    );
 
-    // Check if this falls within our reminder days
-    const shouldRemind =
-      config.reminderDays.includes(daysUntilDue) ||
-      // Also check for overdue (between -7 and -1)
-      (daysUntilDue >= -7 && daysUntilDue < 0);
+    if (minutesUntilDue >= 0) {
+      // Check each threshold: fire when task is within X minutes of due time
+      for (const threshold of config.reminderMinutes) {
+        if (minutesUntilDue <= threshold) {
+          const key = generateReminderKey(
+            task.filePath,
+            task.rawLine,
+            task.dueDate,
+            threshold
+          );
 
-    if (shouldRemind) {
-      const key = generateReminderKey(
-        task.filePath,
-        task.rawLine,
-        task.dueDate,
-        daysUntilDue
-      );
+          if (!isReminderSent(sentLog, key)) {
+            reminders.push({
+              task,
+              reminderType: getReminderType(minutesUntilDue),
+              minutesUntilDue,
+              thresholdMinutes: threshold,
+              key,
+            });
+          }
+        }
+      }
+    } else {
+      // Overdue: negative minutes within overdueMinutes window
+      if (Math.abs(minutesUntilDue) <= config.overdueMinutes) {
+        const overdueKey = generateReminderKey(
+          task.filePath,
+          task.rawLine,
+          task.dueDate,
+          -1 // Special sentinel for overdue
+        );
 
-      // Check if already sent
-      if (!isReminderSent(sentLog, key)) {
-        reminders.push({
-          task,
-          reminderType: getReminderType(daysUntilDue),
-          daysUntilDue,
-          key,
-        });
+        if (!isReminderSent(sentLog, overdueKey)) {
+          reminders.push({
+            task,
+            reminderType: 'overdue',
+            minutesUntilDue,
+            thresholdMinutes: -1,
+            key: overdueKey,
+          });
+        }
       }
     }
   }
 
   // Check scheduled date reminders if enabled
   if (config.includeScheduled && task.scheduledDate) {
-    const daysUntilScheduled = calculateDaysUntilDue(
+    const minutesUntilScheduled = calculateMinutesUntilDue(
       task.scheduledDate,
+      task.startTime,
       today,
       config.timezone
     );
 
-    if (config.reminderDays.includes(daysUntilScheduled)) {
-      const key = generateReminderKey(
-        task.filePath,
-        task.rawLine,
-        task.scheduledDate,
-        daysUntilScheduled
-      );
+    if (minutesUntilScheduled >= 0) {
+      for (const threshold of config.reminderMinutes) {
+        if (minutesUntilScheduled <= threshold) {
+          const key = generateReminderKey(
+            task.filePath,
+            task.rawLine,
+            task.scheduledDate,
+            threshold
+          );
 
-      if (!isReminderSent(sentLog, key)) {
-        reminders.push({
-          task,
-          reminderType: getReminderType(daysUntilScheduled),
-          daysUntilDue: daysUntilScheduled,
-          key,
-        });
+          if (!isReminderSent(sentLog, key)) {
+            reminders.push({
+              task,
+              reminderType: getReminderType(minutesUntilScheduled),
+              minutesUntilDue: minutesUntilScheduled,
+              thresholdMinutes: threshold,
+              key,
+            });
+          }
+        }
       }
     }
   }
@@ -123,7 +165,7 @@ export function evaluateTask(
 export function evaluateReminders(
   tasks: Task[],
   today: Date,
-  config: Pick<AppConfig, 'reminderDays' | 'timezone' | 'includeScheduled'>,
+  config: Pick<AppConfig, 'reminderMinutes' | 'overdueMinutes' | 'timezone' | 'includeScheduled'>,
   sentLog: SentLog
 ): Reminder[] {
   const reminders: Reminder[] = [];
@@ -138,8 +180,8 @@ export function evaluateReminders(
     reminders.push(...taskReminders);
   }
 
-  // Sort by days until due (most urgent first)
-  reminders.sort((a, b) => a.daysUntilDue - b.daysUntilDue);
+  // Sort by minutes until due (most urgent first)
+  reminders.sort((a, b) => a.minutesUntilDue - b.minutesUntilDue);
 
   return reminders;
 }
@@ -185,32 +227,42 @@ export function groupRemindersByDate(
 export function getReminderSummary(reminders: Reminder[]): {
   total: number;
   overdue: number;
-  dueToday: number;
-  dueTomorrow: number;
-  dueSoon: number;
+  dueNow: number;
+  upcoming: number;
 } {
   let overdue = 0;
-  let dueToday = 0;
-  let dueTomorrow = 0;
-  let dueSoon = 0;
+  let dueNow = 0;
+  let upcoming = 0;
 
   for (const reminder of reminders) {
-    if (reminder.daysUntilDue < 0) {
+    if (reminder.reminderType === 'overdue') {
       overdue++;
-    } else if (reminder.daysUntilDue === 0) {
-      dueToday++;
-    } else if (reminder.daysUntilDue === 1) {
-      dueTomorrow++;
+    } else if (reminder.reminderType === 'due-now') {
+      dueNow++;
     } else {
-      dueSoon++;
+      upcoming++;
     }
   }
 
   return {
     total: reminders.length,
     overdue,
-    dueToday,
-    dueTomorrow,
-    dueSoon,
+    dueNow,
+    upcoming,
   };
+}
+
+/**
+ * Formats minutes into a human-readable duration string
+ */
+export function formatMinutesDuration(minutes: number): string {
+  const abs = Math.abs(minutes);
+  if (abs >= 1440) {
+    const days = Math.round(abs / 1440);
+    return `${days} day${days !== 1 ? 's' : ''}`;
+  } else if (abs >= 60) {
+    const hours = Math.round(abs / 60);
+    return `${hours} hour${hours !== 1 ? 's' : ''}`;
+  }
+  return `${abs} minute${abs !== 1 ? 's' : ''}`;
 }

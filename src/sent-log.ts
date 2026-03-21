@@ -62,13 +62,14 @@ export function saveSentLog(logPath: string, log: SentLog): void {
 
 /**
  * Generates a unique key for a reminder
- * Key is based on: file path + line content hash + due date + reminder type
+ * Key is based on: file path + line content hash + due date + threshold minutes
+ * threshold = -1 is the special sentinel for the overdue reminder
  */
 export function generateReminderKey(
   filePath: string,
   rawLine: string,
   dueDate: string,
-  daysUntilDue: number
+  thresholdMinutes: number
 ): string {
   // Create a hash of the line content to handle edits
   const lineHash = createHash('md5')
@@ -77,14 +78,8 @@ export function generateReminderKey(
     .substring(0, 8);
 
   // Determine reminder type identifier
-  let reminderTypeId: string;
-  if (daysUntilDue < 0) {
-    reminderTypeId = 'overdue';
-  } else if (daysUntilDue === 0) {
-    reminderTypeId = 'today';
-  } else {
-    reminderTypeId = `${daysUntilDue}d`;
-  }
+  const reminderTypeId =
+    thresholdMinutes < 0 ? 'overdue' : `${thresholdMinutes}m`;
 
   return `${filePath}:${lineHash}:${dueDate}:${reminderTypeId}`;
 }
@@ -107,7 +102,7 @@ export function recordSentReminder(
   const entry: SentReminderEntry = {
     sentAt: sentAt.toISOString(),
     task: reminder.task.description,
-    dueDate: reminder.task.dueDate!,
+    dueDate: (reminder.task.dueDate || reminder.task.scheduledDate)!,
     reminderType: reminder.reminderType,
     filePath: reminder.task.filePath,
   };

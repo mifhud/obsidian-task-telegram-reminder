@@ -21,6 +21,8 @@ export interface Task {
   startDate: string | null;
   /** Created date in YYYY-MM-DD format, or null if not set */
   createdDate: string | null;
+  /** Start time on the due date in HH:mm format, or null if not set */
+  startTime: string | null;
   /** Whether the task is marked as done */
   isDone: boolean;
   /** Task priority level */
@@ -36,13 +38,9 @@ export interface Task {
 }
 
 /**
- * Reminder types based on days until due
+ * Reminder types based on minutes until due
  */
-export type ReminderType =
-  | '2-days-before'
-  | '1-day-before'
-  | 'due-today'
-  | 'overdue';
+export type ReminderType = 'overdue' | 'due-now' | 'upcoming';
 
 /**
  * Represents a reminder to be sent
@@ -52,8 +50,10 @@ export interface Reminder {
   task: Task;
   /** Type of reminder */
   reminderType: ReminderType;
-  /** Days until due (negative for overdue) */
-  daysUntilDue: number;
+  /** Minutes until due (negative for overdue) */
+  minutesUntilDue: number;
+  /** The threshold value from reminderMinutes that triggered this reminder */
+  thresholdMinutes: number;
   /** Unique key for deduplication */
   key: string;
 }
@@ -90,10 +90,10 @@ export interface SentLog {
 export interface AppConfig {
   /** Cron expression for main scan schedule */
   scanCron: string;
-  /** Days before due date to send reminders */
-  reminderDays: number[];
-  /** Time of day to send reminders (HH:mm format) */
-  reminderTime: string;
+  /** Minutes before due datetime to send reminders (threshold-based) */
+  reminderMinutes: number[];
+  /** Minutes after due datetime to continue sending overdue reminders */
+  overdueMinutes: number;
   /** Folders to exclude from scanning */
   excludeFolders: string[];
   /** Whether to also remind on scheduled dates */

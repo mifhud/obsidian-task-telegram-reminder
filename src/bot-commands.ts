@@ -8,7 +8,7 @@ import { addDays } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
 import type { Config, Task, Reminder } from './types.js';
 import { scanVault, filterRelevantTasks } from './scanner.js';
-import { calculateDaysUntilDue } from './reminder-engine.js';
+import { calculateMinutesUntilDue } from './reminder-engine.js';
 import { formatStatusMessage, formatUpcomingMessage } from './notifier.js';
 import { getLogger } from './logger.js';
 
@@ -44,27 +44,29 @@ export function registerBotCommands(
       for (const task of relevantTasks) {
         if (!task.dueDate) continue;
 
-        const daysUntil = calculateDaysUntilDue(task.dueDate, now, config.timezone);
+        const minutesUntil = calculateMinutesUntilDue(task.dueDate, task.startTime, now, config.timezone);
 
-        if (daysUntil === 0) {
+        if (minutesUntil <= 0 && minutesUntil > -1440) {
           todayTasks.push({
             task,
-            reminderType: 'due-today',
-            daysUntilDue: daysUntil,
+            reminderType: 'due-now',
+            minutesUntilDue: minutesUntil,
+            thresholdMinutes: 0,
             key: '',
           });
-        } else if (daysUntil > 0 && daysUntil <= 7) {
+        } else if (minutesUntil > 0 && minutesUntil <= 10080) {
           upcomingTasks.push({
             task,
-            reminderType: daysUntil === 1 ? '1-day-before' : '2-days-before',
-            daysUntilDue: daysUntil,
+            reminderType: 'upcoming',
+            minutesUntilDue: minutesUntil,
+            thresholdMinutes: minutesUntil,
             key: '',
           });
         }
       }
 
       // Sort upcoming by due date
-      upcomingTasks.sort((a, b) => a.daysUntilDue - b.daysUntilDue);
+      upcomingTasks.sort((a, b) => a.minutesUntilDue - b.minutesUntilDue);
 
       const message = formatStatusMessage(todayTasks, upcomingTasks);
       await bot.sendMessage(chatId, message, { parse_mode: 'HTML' });
@@ -103,21 +105,22 @@ export function registerBotCommands(
       for (const task of relevantTasks) {
         if (!task.dueDate) continue;
 
-        const daysUntil = calculateDaysUntilDue(task.dueDate, now, config.timezone);
+        const minutesUntil = calculateMinutesUntilDue(task.dueDate, task.startTime, now, config.timezone);
 
         // Include tasks due in next 7 days (including today)
-        if (daysUntil >= 0 && daysUntil <= 7) {
+        if (minutesUntil >= 0 && minutesUntil <= 10080) {
           upcomingReminders.push({
             task,
-            reminderType: daysUntil === 0 ? 'due-today' : daysUntil === 1 ? '1-day-before' : '2-days-before',
-            daysUntilDue: daysUntil,
+            reminderType: minutesUntil === 0 ? 'due-now' : 'upcoming',
+            minutesUntilDue: minutesUntil,
+            thresholdMinutes: minutesUntil,
             key: '',
           });
         }
       }
 
       // Sort by due date
-      upcomingReminders.sort((a, b) => a.daysUntilDue - b.daysUntilDue);
+      upcomingReminders.sort((a, b) => a.minutesUntilDue - b.minutesUntilDue);
 
       const message = formatUpcomingMessage(upcomingReminders);
       await bot.sendMessage(chatId, message, { parse_mode: 'HTML' });

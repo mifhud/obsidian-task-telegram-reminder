@@ -13,8 +13,8 @@ import type { Config, AppConfig, EnvConfig } from './types.js';
  */
 const DEFAULT_CONFIG: AppConfig = {
   scanCron: '0 8 * * *',
-  reminderDays: [2, 1, 0],
-  reminderTime: '08:00',
+  reminderMinutes: [1440, 60, 0],
+  overdueMinutes: 10080,
   excludeFolders: ['.obsidian', '.trash', 'templates', 'archive', 'archives'],
   includeScheduled: false,
   dataviewFormat: false,
@@ -129,15 +129,18 @@ function loadAppConfig(configPath: string = './config.json'): AppConfig {
 
     // Validate
     validateCron(config.scanCron, 'scanCron');
-    validateTime(config.reminderTime, 'reminderTime');
     validateLogLevel(config.logLevel);
 
     if (config.eveningScanCron) {
       validateCron(config.eveningScanCron, 'eveningScanCron');
     }
 
-    if (!Array.isArray(config.reminderDays)) {
-      throw new Error('reminderDays must be an array of numbers');
+    if (!Array.isArray(config.reminderMinutes)) {
+      throw new Error('reminderMinutes must be an array of numbers');
+    }
+
+    if (typeof config.overdueMinutes !== 'number' || config.overdueMinutes < 0) {
+      throw new Error('overdueMinutes must be a non-negative number');
     }
 
     if (!Array.isArray(config.excludeFolders)) {

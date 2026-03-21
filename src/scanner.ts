@@ -33,6 +33,7 @@ const DATAVIEW_DATE_PATTERNS = {
   scheduled: /\[scheduled::\s*(\d{4}-\d{2}-\d{2})\]/,
   start: /\[start::\s*(\d{4}-\d{2}-\d{2})\]/,
   created: /\[created::\s*(\d{4}-\d{2}-\d{2})\]/,
+  startTime: /\[startTime::\s*(\d{2}:\d{2})\]/,
 };
 
 /**
@@ -78,7 +79,7 @@ function extractRecurrence(line: string): string | null {
 }
 
 /**
- * Strips all emoji markers and dates from description to get clean text
+ * Strips all emoji markers, dates, and Dataview fields from description to get clean text
  */
 function cleanDescription(description: string): string {
   return description
@@ -88,7 +89,7 @@ function cleanDescription(description: string): string {
     .replace(/[⏫🔼🔽]/g, '')
     // Remove recurrence
     .replace(/🔁\s*[^\s📅⏳🛫➕✅⏫🔼🔽]+(?:\s+[^\s📅⏳🛫➕✅⏫🔼🔽]+)*/g, '')
-    // Remove Dataview fields
+    // Remove Dataview fields (including startTime)
     .replace(/\[\w+::\s*[^\]]+\]/g, '')
     // Clean up extra whitespace
     .replace(/\s+/g, ' ')
@@ -121,6 +122,9 @@ export function parseTaskLine(
   let startDate = extractDate(restOfLine, DATE_PATTERNS.start);
   let createdDate = extractDate(restOfLine, DATE_PATTERNS.created);
 
+  // startTime is always parsed from Dataview format: [startTime:: HH:mm]
+  const startTime = extractDate(restOfLine, DATAVIEW_DATE_PATTERNS.startTime);
+
   // Try Dataview format if enabled and emoji format not found
   if (useDataview) {
     if (!dueDate) {
@@ -148,6 +152,7 @@ export function parseTaskLine(
     scheduledDate,
     startDate,
     createdDate,
+    startTime,
     isDone,
     priority,
     filePath,
