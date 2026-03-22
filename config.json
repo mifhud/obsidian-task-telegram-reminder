@@ -1,10 +1,10 @@
 {
-  "scanCron": "*/15 * * * *",
+  "scanCron": "*/3 * * * *",
   "reminderMinutes": [1440, 60, 15, 0],
   "overdueMinutes": [4320, 1440],
   "excludeFolders": [".obsidian", ".trash", "templates", "archive", "archives"],
   "includeScheduled": true,
-  "dataviewFormat": false,
+  "dataviewFormat": true,
   "sentLogPath": "./sent-reminders.json",
   "timezone": "Asia/Jakarta",
   "logLevel": "info",

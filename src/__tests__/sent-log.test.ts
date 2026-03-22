@@ -26,7 +26,7 @@ const createMockReminder = (overrides: Partial<Reminder> = {}): Reminder => ({
     scheduledDate: null,
     startDate: null,
     createdDate: null,
-    startTime: null,
+    endTime: null,
     isDone: false,
     priority: 'none',
     filePath: 'test.md',

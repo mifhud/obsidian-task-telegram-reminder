@@ -24,17 +24,17 @@ function getReminderType(minutesUntilDue: number): ReminderType {
 
 /**
  * Builds a full Date from a YYYY-MM-DD date string and an optional HH:mm time string.
- * When no time is provided, defaults to 00:00 (start of day).
+ * When no time is provided, defaults to 23:59 (end of day).
  */
 export function buildDueDateTime(
   dueDate: string,
-  startTime: string | null
+  endTime: string | null
 ): Date {
   const base = parseISO(dueDate);
-  if (!startTime) {
-    return set(base, { hours: 0, minutes: 0, seconds: 0, milliseconds: 0 });
+  if (!endTime) {
+    return set(base, { hours: 23, minutes: 59, seconds: 0, milliseconds: 0 });
   }
-  const [hours, minutes] = startTime.split(':').map(Number);
+  const [hours, minutes] = endTime.split(':').map(Number);
   return set(base, { hours, minutes, seconds: 0, milliseconds: 0 });
 }
 
@@ -44,11 +44,11 @@ export function buildDueDateTime(
  */
 export function calculateMinutesUntilDue(
   dueDate: string,
-  startTime: string | null,
+  endTime: string | null,
   referenceDate: Date,
   timezone: string
 ): number {
-  const dueDateTimeLocal = buildDueDateTime(dueDate, startTime);
+  const dueDateTimeLocal = buildDueDateTime(dueDate, endTime);
 
   // Get the reference time in the target timezone
   const refInTz = toZonedTime(referenceDate, timezone);
@@ -73,7 +73,7 @@ export function evaluateTask(
   if (task.dueDate) {
     const minutesUntilDue = calculateMinutesUntilDue(
       task.dueDate,
-      task.startTime,
+      task.endTime,
       today,
       config.timezone
     );
@@ -130,7 +130,7 @@ export function evaluateTask(
   if (config.includeScheduled && task.scheduledDate) {
     const minutesUntilScheduled = calculateMinutesUntilDue(
       task.scheduledDate,
-      task.startTime,
+      task.endTime,
       today,
       config.timezone
     );

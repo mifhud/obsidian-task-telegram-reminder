@@ -44,7 +44,7 @@ export function registerBotCommands(
       for (const task of relevantTasks) {
         if (!task.dueDate) continue;
 
-        const minutesUntil = calculateMinutesUntilDue(task.dueDate, task.startTime, now, config.timezone);
+        const minutesUntil = calculateMinutesUntilDue(task.dueDate, task.endTime, now, config.timezone);
 
         if (minutesUntil <= 0 && minutesUntil > -1440) {
           todayTasks.push({
@@ -105,7 +105,7 @@ export function registerBotCommands(
       for (const task of relevantTasks) {
         if (!task.dueDate) continue;
 
-        const minutesUntil = calculateMinutesUntilDue(task.dueDate, task.startTime, now, config.timezone);
+        const minutesUntil = calculateMinutesUntilDue(task.dueDate, task.endTime, now, config.timezone);
 
         // Include tasks due in next 7 days (including today)
         if (minutesUntil >= 0 && minutesUntil <= 10080) {

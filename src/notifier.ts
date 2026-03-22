@@ -64,7 +64,7 @@ export function formatSingleReminder(reminder: Reminder): string {
 
   // Due date + time
   if (task.dueDate) {
-    const timeStr = task.startTime ? ` ${task.startTime}` : '';
+    const timeStr = task.endTime ? ` ${task.endTime}` : '';
     lines.push(`📅 Due: ${formatDate(task.dueDate)}${timeStr}`);
   }
 

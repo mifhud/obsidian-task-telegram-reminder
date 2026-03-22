@@ -21,7 +21,7 @@ const createTask = (overrides: Partial<Task> = {}): Task => ({
   scheduledDate: null,
   startDate: null,
   createdDate: null,
-  startTime: null,
+  endTime: null,
   isDone: false,
   priority: 'none',
   filePath: 'test.md',
@@ -46,13 +46,13 @@ const defaultConfig: Pick<AppConfig, 'reminderMinutes' | 'overdueMinutes' | 'tim
 };
 
 describe('buildDueDateTime', () => {
-  it('should default to 00:00 when no startTime', () => {
+  it('should default to 23:59 when no endTime', () => {
     const dt = buildDueDateTime('2026-04-15', null);
-    expect(dt.getHours()).toBe(0);
-    expect(dt.getMinutes()).toBe(0);
+    expect(dt.getHours()).toBe(23);
+    expect(dt.getMinutes()).toBe(59);
   });
 
-  it('should use startTime when provided', () => {
+  it('should use endTime when provided', () => {
     const dt = buildDueDateTime('2026-04-15', '14:30');
     expect(dt.getHours()).toBe(14);
     expect(dt.getMinutes()).toBe(30);
@@ -60,34 +60,34 @@ describe('buildDueDateTime', () => {
 });
 
 describe('calculateMinutesUntilDue', () => {
-  it('should return 0 when exactly at due time', () => {
+  it('should return 0 when exactly at due time for date-only tasks', () => {
     const dueDate = '2026-04-15';
-    const today = new Date('2026-04-15T00:00:00Z');
+    const today = new Date('2026-04-15T23:59:00Z');
 
     const minutes = calculateMinutesUntilDue(dueDate, null, today, 'UTC');
 
     expect(minutes).toBe(0);
   });
 
-  it('should return 1440 for a task due tomorrow at 00:00', () => {
+  it('should return 2879 for a task due tomorrow at 23:59', () => {
     const dueDate = '2026-04-16';
     const today = new Date('2026-04-15T00:00:00Z');
 
     const minutes = calculateMinutesUntilDue(dueDate, null, today, 'UTC');
 
-    expect(minutes).toBe(1440);
+    expect(minutes).toBe(2879);
   });
 
-  it('should return negative minutes for overdue tasks', () => {
+  it('should return negative minutes for overdue date-only tasks', () => {
     const dueDate = '2026-04-14';
-    const today = new Date('2026-04-15T00:00:00Z');
+    const today = new Date('2026-04-15T23:59:00Z');
 
     const minutes = calculateMinutesUntilDue(dueDate, null, today, 'UTC');
 
     expect(minutes).toBe(-1440);
   });
 
-  it('should use startTime for minute precision', () => {
+  it('should use endTime for minute precision', () => {
     const dueDate = '2026-04-15';
     const today = new Date('2026-04-15T13:00:00Z');
 
@@ -96,7 +96,7 @@ describe('calculateMinutesUntilDue', () => {
     expect(minutes).toBe(60);
   });
 
-  it('should return negative when past the startTime', () => {
+  it('should return negative when past the endTime', () => {
     const dueDate = '2026-04-15';
     const today = new Date('2026-04-15T15:00:00Z');
 
@@ -108,18 +108,17 @@ describe('calculateMinutesUntilDue', () => {
 
 describe('evaluateTask', () => {
   it('should trigger threshold when minutesUntilDue <= threshold', () => {
-    // Task due in 1 day (1440 min), thresholds: [2880, 1440, 60, 0]
-    // Fires for thresholds where minutesUntilDue <= threshold: 2880 and 1440
+    // Date-only task due tomorrow defaults to 23:59, so from 00:00 it's 2879 min away.
+    // Thresholds: [2880, 1440, 60, 15, 0] -> only 2880 should fire.
     const task = createTask({ dueDate: '2026-04-16' });
     const today = new Date('2026-04-15T00:00:00Z');
     const sentLog = createEmptySentLog();
 
     const reminders = evaluateTask(task, today, defaultConfig, sentLog);
 
-    // Should trigger for thresholds 2880 and 1440 (both >= 1440)
-    expect(reminders.length).toBe(2);
+    expect(reminders.length).toBe(1);
     const thresholds = reminders.map((r) => r.thresholdMinutes).sort((a, b) => a - b);
-    expect(thresholds).toEqual([1440, 2880]);
+    expect(thresholds).toEqual([2880]);
   });
 
   it('should trigger upcoming type for future tasks', () => {
@@ -134,7 +133,7 @@ describe('evaluateTask', () => {
 
   it('should trigger due-now when minutesUntilDue is 0', () => {
     const task = createTask({ dueDate: '2026-04-15' });
-    const today = new Date('2026-04-15T00:00:00Z');
+    const today = new Date('2026-04-15T23:59:00Z');
     const sentLog = createEmptySentLog();
 
     const reminders = evaluateTask(task, today, defaultConfig, sentLog);
@@ -147,7 +146,7 @@ describe('evaluateTask', () => {
     // Task was due 1 day ago (1440 min overdue), overdueMinutes=[4320, 1440]
     // Fires for threshold 1440 (1440 >= 1440) but not 4320
     const task = createTask({ dueDate: '2026-04-14' });
-    const today = new Date('2026-04-15T00:00:00Z');
+    const today = new Date('2026-04-15T23:59:00Z');
     const sentLog = createEmptySentLog();
 
     const reminders = evaluateTask(task, today, defaultConfig, sentLog);
@@ -175,7 +174,7 @@ describe('evaluateTask', () => {
 
   it('should not trigger overdue if below minimum overdueMinutes threshold', () => {
     // Task is 15 min overdue, minimum threshold is 1440 — no overdue reminders
-    const task = createTask({ dueDate: '2026-04-15', startTime: '23:30' });
+    const task = createTask({ dueDate: '2026-04-15', endTime: '23:30' });
     const today = new Date('2026-04-15T23:45:00Z'); // 15 min overdue
     const sentLog = createEmptySentLog();
 
@@ -209,10 +208,10 @@ describe('evaluateTask', () => {
     expect(secondReminders.length).toBe(0);
   });
 
-  it('should use startTime for minute-level precision', () => {
+  it('should use endTime for minute-level precision', () => {
     // Task due today at 14:00, current time is 13:00 → 60 min away
     // Thresholds: [2880, 1440, 60, 0]; fires for thresholds >= 60: 2880, 1440, 60
-    const task = createTask({ dueDate: '2026-04-15', startTime: '14:00' });
+    const task = createTask({ dueDate: '2026-04-15', endTime: '14:00' });
     const today = new Date('2026-04-15T13:00:00Z');
     const sentLog = createEmptySentLog();
 
@@ -294,8 +293,8 @@ describe('groupRemindersByType', () => {
     const reminders = evaluateReminders(tasks, today, defaultConfig, sentLog);
     const grouped = groupRemindersByType(reminders);
 
-    // Due-now reminders for tasks due today (threshold 0)
-    expect(grouped.get('due-now')?.length).toBeGreaterThan(0);
+    // Date-only tasks due today are upcoming at 00:00 and become due-now at 23:59.
+    expect(grouped.get('upcoming')?.length).toBeGreaterThan(0);
     // Upcoming reminders for tasks due later
     expect(grouped.get('upcoming')?.length).toBeGreaterThan(0);
   });

@@ -21,8 +21,8 @@ export interface Task {
   startDate: string | null;
   /** Created date in YYYY-MM-DD format, or null if not set */
   createdDate: string | null;
-  /** Start time on the due date in HH:mm format, or null if not set */
-  startTime: string | null;
+  /** End time on the due date in HH:mm format, or null if not set */
+  endTime: string | null;
   /** Whether the task is marked as done */
   isDone: boolean;
   /** Task priority level */
