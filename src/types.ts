@@ -106,8 +106,6 @@ export interface AppConfig {
   timezone: string;
   /** Logging level */
   logLevel: 'debug' | 'info' | 'warn' | 'error';
-  /** Optional evening scan cron expression */
-  eveningScanCron: string | null;
 }
 
 /**

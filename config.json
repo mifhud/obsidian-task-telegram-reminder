@@ -7,6 +7,5 @@
   "dataviewFormat": true,
   "sentLogPath": "./sent-reminders.json",
   "timezone": "Asia/Jakarta",
-  "logLevel": "info",
-  "eveningScanCron": null
+  "logLevel": "info"
 }

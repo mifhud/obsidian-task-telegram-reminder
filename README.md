@@ -160,7 +160,6 @@ pm2 startup
 | `includeScheduled` | `false` | Also remind on ⏳ dates |
 | `dataviewFormat` | `false` | Parse `[due:: date]` format |
 | `logLevel` | `info` | Logging verbosity |
-| `eveningScanCron` | `null` | Optional second daily scan |
 
 ## Bot Commands
 

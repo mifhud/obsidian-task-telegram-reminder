@@ -220,9 +220,6 @@ async function main(): Promise<void> {
 
   logger.info('Scheduler started', {
     primarySchedule: describeCron(config.scanCron),
-    eveningSchedule: config.eveningScanCron
-      ? describeCron(config.eveningScanCron)
-      : 'disabled',
   });
 
   logger.info('Obsidian Telegram Reminder is running. Press Ctrl+C to stop.');

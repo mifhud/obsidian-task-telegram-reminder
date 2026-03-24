@@ -9,8 +9,6 @@ import type { Config } from './types.js';
 export interface SchedulerOptions {
   /** Primary scan cron expression */
   scanCron: string;
-  /** Optional evening scan cron expression */
-  eveningScanCron: string | null;
   /** Timezone for scheduling */
   timezone: string;
 }
@@ -18,8 +16,6 @@ export interface SchedulerOptions {
 export interface Scheduler {
   /** Primary scan task */
   primaryTask: ScheduledTask;
-  /** Optional evening scan task */
-  eveningTask: ScheduledTask | null;
   /** Stop all scheduled tasks */
   stop: () => void;
 }
@@ -31,17 +27,11 @@ export function createScheduler(
   options: SchedulerOptions,
   onScan: () => Promise<void>
 ): Scheduler {
-  const { scanCron, eveningScanCron, timezone } = options;
+  const { scanCron, timezone } = options;
 
   // Validate cron expressions
   if (!cron.validate(scanCron)) {
     throw new Error(`Invalid cron expression for scanCron: ${scanCron}`);
-  }
-
-  if (eveningScanCron && !cron.validate(eveningScanCron)) {
-    throw new Error(
-      `Invalid cron expression for eveningScanCron: ${eveningScanCron}`
-    );
   }
 
   // Create primary scan task
@@ -61,38 +51,12 @@ export function createScheduler(
     }
   );
 
-  // Create optional evening scan task
-  let eveningTask: ScheduledTask | null = null;
-  if (eveningScanCron) {
-    eveningTask = cron.schedule(
-      eveningScanCron,
-      async () => {
-        console.log(
-          `[${new Date().toISOString()}] Running evening scheduled scan...`
-        );
-        try {
-          await onScan();
-        } catch (error) {
-          console.error('Evening scan failed:', error);
-        }
-      },
-      {
-        timezone,
-        scheduled: true,
-      }
-    );
-  }
-
   const stop = () => {
     primaryTask.stop();
-    if (eveningTask) {
-      eveningTask.stop();
-    }
   };
 
   return {
     primaryTask,
-    eveningTask,
     stop,
   };
 }
@@ -107,7 +71,6 @@ export function createSchedulerFromConfig(
   return createScheduler(
     {
       scanCron: config.scanCron,
-      eveningScanCron: config.eveningScanCron,
       timezone: config.timezone,
     },
     onScan

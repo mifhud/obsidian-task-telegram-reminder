@@ -21,7 +21,6 @@ const DEFAULT_CONFIG: AppConfig = {
   sentLogPath: './sent-reminders.json',
   timezone: 'Asia/Jakarta',
   logLevel: 'info',
-  eveningScanCron: null,
 };
 
 /**
@@ -130,10 +129,6 @@ function loadAppConfig(configPath: string = './config.json'): AppConfig {
     // Validate
     validateCron(config.scanCron, 'scanCron');
     validateLogLevel(config.logLevel);
-
-    if (config.eveningScanCron) {
-      validateCron(config.eveningScanCron, 'eveningScanCron');
-    }
 
     if (!Array.isArray(config.reminderMinutes)) {
       throw new Error('reminderMinutes must be an array of numbers');
