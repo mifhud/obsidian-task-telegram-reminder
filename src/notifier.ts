@@ -155,7 +155,7 @@ export function formatDigestMessage(
 
 /**
  * Formats all reminders into messages
- * Groups by type and creates digest messages when multiple tasks share same due date
+ * Groups by type, source (due/scheduled), and date - sends separate messages for each group
  */
 export function formatAllReminders(reminders: Reminder[]): string[] {
   const messages: string[] = [];
@@ -170,18 +170,23 @@ export function formatAllReminders(reminders: Reminder[]): string[] {
       continue;
     }
 
-    // Group by due date within type
-    const byDate = new Map<string, Reminder[]>();
+    // Group by source (due/scheduled) AND date within type
+    const bySourceAndDate = new Map<string, Reminder[]>();
     for (const r of typeReminders) {
-      const date = r.task.dueDate || 'unknown';
-      const existing = byDate.get(date) || [];
+      // Use the relevant date based on reminder source
+      const date = r.reminderSource === 'scheduled' 
+        ? (r.task.scheduledDate || 'unknown')
+        : (r.task.dueDate || 'unknown');
+      // Create a composite key: source + date
+      const key = `${r.reminderSource}:${date}`;
+      const existing = bySourceAndDate.get(key) || [];
       existing.push(r);
-      byDate.set(date, existing);
+      bySourceAndDate.set(key, existing);
     }
 
-    // Format each date group
-    for (const dateReminders of byDate.values()) {
-      messages.push(formatDigestMessage(dateReminders, type));
+    // Format each source+date group as separate message
+    for (const groupReminders of bySourceAndDate.values()) {
+      messages.push(formatDigestMessage(groupReminders, type));
     }
   }
 
