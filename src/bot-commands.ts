@@ -50,6 +50,7 @@ export function registerBotCommands(
           todayTasks.push({
             task,
             reminderType: 'due-now',
+            reminderSource: 'due',
             minutesUntilDue: minutesUntil,
             thresholdMinutes: 0,
             key: '',
@@ -58,6 +59,7 @@ export function registerBotCommands(
           upcomingTasks.push({
             task,
             reminderType: 'upcoming',
+            reminderSource: 'due',
             minutesUntilDue: minutesUntil,
             thresholdMinutes: minutesUntil,
             key: '',
@@ -112,6 +114,7 @@ export function registerBotCommands(
           upcomingReminders.push({
             task,
             reminderType: minutesUntil === 0 ? 'due-now' : 'upcoming',
+            reminderSource: 'due',
             minutesUntilDue: minutesUntil,
             thresholdMinutes: minutesUntil,
             key: '',

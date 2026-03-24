@@ -5,7 +5,7 @@
 
 import TelegramBot from 'node-telegram-bot-api';
 import { format, parseISO } from 'date-fns';
-import type { Reminder, SendResult, Priority, ReminderType } from './types.js';
+import type { Reminder, SendResult, Priority, ReminderType, ReminderSource } from './types.js';
 import { groupRemindersByType, formatMinutesDuration } from './reminder-engine.js';
 
 /**
@@ -19,12 +19,23 @@ const PRIORITY_DISPLAY: Record<Priority, string> = {
 };
 
 /**
- * Returns a reminder header based on type and threshold minutes
+ * Returns a reminder header based on type, threshold minutes, and source
  */
-function getReminderHeader(reminderType: ReminderType, thresholdMinutes: number): string {
+function getReminderHeader(
+  reminderType: ReminderType,
+  thresholdMinutes: number,
+  reminderSource: ReminderSource = 'due'
+): string {
   if (reminderType === 'overdue') return '🚨 <b>OVERDUE</b>';
-  if (reminderType === 'due-now') return '⏰ <b>DUE NOW</b>';
+  
   const duration = formatMinutesDuration(thresholdMinutes);
+  
+  if (reminderSource === 'scheduled') {
+    if (reminderType === 'due-now') return '⏰ <b>SCHEDULED NOW</b>';
+    return `🔔 <b>Reminder: scheduled in ${duration}</b>`;
+  }
+  
+  if (reminderType === 'due-now') return '⏰ <b>DUE NOW</b>';
   return `🔔 <b>Reminder: due in ${duration}</b>`;
 }
 
@@ -54,16 +65,19 @@ function escapeHtml(text: string): string {
  * Formats a single reminder as an HTML message
  */
 export function formatSingleReminder(reminder: Reminder): string {
-  const { task, reminderType, minutesUntilDue, thresholdMinutes } = reminder;
-  const header = getReminderHeader(reminderType, thresholdMinutes);
+  const { task, reminderType, reminderSource, minutesUntilDue, thresholdMinutes } = reminder;
+  const header = getReminderHeader(reminderType, thresholdMinutes, reminderSource);
 
   const lines: string[] = [header, ''];
 
   // Task description
   lines.push(`📝 ${escapeHtml(task.description)}`);
 
-  // Due date + time
-  if (task.dueDate) {
+  // Show date based on reminder source
+  if (reminderSource === 'scheduled' && task.scheduledDate) {
+    const timeStr = task.endTime ? ` ${task.endTime}` : '';
+    lines.push(`📅 Scheduled: ${formatDate(task.scheduledDate)}${timeStr}`);
+  } else if (task.dueDate) {
     const timeStr = task.endTime ? ` ${task.endTime}` : '';
     lines.push(`📅 Due: ${formatDate(task.dueDate)}${timeStr}`);
   }
@@ -100,9 +114,15 @@ export function formatDigestMessage(
     return formatSingleReminder(reminders[0]);
   }
 
-  const header = getReminderHeader(reminderType, reminders[0].thresholdMinutes);
-  const dueDate = reminders[0].task.dueDate;
-  const formattedDate = dueDate ? formatDate(dueDate) : '';
+  // Use the first reminder's source for the header
+  const reminderSource = reminders[0].reminderSource;
+  const header = getReminderHeader(reminderType, reminders[0].thresholdMinutes, reminderSource);
+  
+  // Get the relevant date based on source
+  const relevantDate = reminderSource === 'scheduled' 
+    ? reminders[0].task.scheduledDate 
+    : reminders[0].task.dueDate;
+  const formattedDate = relevantDate ? formatDate(relevantDate) : '';
 
   const lines: string[] = [
     `${header}`,

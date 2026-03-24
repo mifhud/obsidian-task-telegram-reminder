@@ -5,7 +5,7 @@
 
 import { parseISO, differenceInMinutes, set } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
-import type { Task, Reminder, ReminderType, SentLog, AppConfig } from './types.js';
+import type { Task, Reminder, ReminderType, ReminderSource, SentLog, AppConfig } from './types.js';
 import {
   generateReminderKey,
   isReminderSent,
@@ -93,6 +93,7 @@ export function evaluateTask(
             reminders.push({
               task,
               reminderType: getReminderType(minutesUntilDue),
+              reminderSource: 'due',
               minutesUntilDue,
               thresholdMinutes: threshold,
               key,
@@ -116,6 +117,7 @@ export function evaluateTask(
             reminders.push({
               task,
               reminderType: 'overdue',
+              reminderSource: 'due',
               minutesUntilDue,
               thresholdMinutes: -threshold,
               key: overdueKey,
@@ -149,6 +151,7 @@ export function evaluateTask(
             reminders.push({
               task,
               reminderType: getReminderType(minutesUntilScheduled),
+              reminderSource: 'scheduled',
               minutesUntilDue: minutesUntilScheduled,
               thresholdMinutes: threshold,
               key,

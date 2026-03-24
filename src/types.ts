@@ -43,6 +43,11 @@ export interface Task {
 export type ReminderType = 'overdue' | 'due-now' | 'upcoming';
 
 /**
+ * Source of the reminder - whether it's based on due date or scheduled date
+ */
+export type ReminderSource = 'due' | 'scheduled';
+
+/**
  * Represents a reminder to be sent
  */
 export interface Reminder {
@@ -50,6 +55,8 @@ export interface Reminder {
   task: Task;
   /** Type of reminder */
   reminderType: ReminderType;
+  /** Source of the reminder - whether it's based on due date or scheduled date */
+  reminderSource: ReminderSource;
   /** Minutes until due (negative for overdue) */
   minutesUntilDue: number;
   /** The threshold value from reminderMinutes that triggered this reminder */
