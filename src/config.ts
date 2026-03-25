@@ -6,7 +6,7 @@
 import { config as dotenvConfig } from 'dotenv';
 import { readFileSync, existsSync } from 'fs';
 import { resolve } from 'path';
-import type { Config, AppConfig, EnvConfig } from './types.js';
+import type { Config, AppConfig, EnvConfig, MySqlConfig } from './types.js';
 
 /**
  * Default configuration values
@@ -18,7 +18,6 @@ const DEFAULT_CONFIG: AppConfig = {
   excludeFolders: ['.obsidian', '.trash', 'templates', 'archive', 'archives'],
   includeScheduled: false,
   dataviewFormat: false,
-  sentLogPath: './sent-reminders.json',
   timezone: 'Asia/Jakarta',
   logLevel: 'info',
 };
@@ -82,6 +81,41 @@ function validateLogLevel(
 }
 
 /**
+ * Loads MySQL configuration from environment variables
+ */
+function loadMysqlConfig(): MySqlConfig {
+  const host = process.env.MYSQL_HOST;
+  const port = process.env.MYSQL_PORT;
+  const user = process.env.MYSQL_USER;
+  const password = process.env.MYSQL_PASSWORD;
+  const database = process.env.MYSQL_DATABASE;
+
+  if (!host || !user || !password || !database) {
+    throw new Error(
+      'Missing required MySQL environment variables. Required: MYSQL_HOST, MYSQL_USER, MYSQL_PASSWORD, MYSQL_DATABASE'
+    );
+  }
+
+  let options: Record<string, unknown> = {};
+  if (process.env.MYSQL_OPTIONS) {
+    try {
+      options = JSON.parse(process.env.MYSQL_OPTIONS);
+    } catch (error) {
+      throw new Error(`Invalid MYSQL_OPTIONS JSON: ${error}`);
+    }
+  }
+
+  return {
+    host,
+    port: parseInt(port || '3306', 10),
+    user,
+    password,
+    database,
+    options,
+  };
+}
+
+/**
  * Loads environment variables from .env file
  */
 function loadEnvConfig(): EnvConfig {
@@ -98,10 +132,14 @@ function loadEnvConfig(): EnvConfig {
   // Validate vault path exists
   validatePath(resolvedVaultPath, 'Vault path');
 
+  // Load MySQL config
+  const mysql = loadMysqlConfig();
+
   return {
     telegramBotToken,
     telegramChatId,
     vaultPath: resolvedVaultPath,
+    mysql,
   };
 }
 
