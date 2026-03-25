@@ -5,7 +5,6 @@
   "excludeFolders": [".obsidian", ".trash", "templates", "archive", "archives"],
   "includeScheduled": true,
   "dataviewFormat": true,
-  "sentLogPath": "./sent-reminders.json",
   "timezone": "Asia/Jakarta",
   "logLevel": "info"
 }

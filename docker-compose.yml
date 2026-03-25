@@ -10,16 +10,20 @@ services:
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
       - VAULT_PATH=/vault
+      - MYSQL_HOST=${MYSQL_HOST}
+      - MYSQL_PORT=${MYSQL_PORT:-3306}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_OPTIONS=${MYSQL_OPTIONS:-{}}
     
     volumes:
       # Mount your Obsidian vault (read-only)
       - ${VAULT_PATH}:/vault:ro
-      # Persist sent reminders log
-      - ./data:/app/data
       # Optional: custom config
       - ./config.json:/app/config.json:ro
 
 # Example usage:
-# 1. Create .env file with TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, and VAULT_PATH
+# 1. Create .env file with TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, VAULT_PATH, and MySQL vars
 # 2. Run: docker-compose up -d
 # 3. View logs: docker-compose logs -f
