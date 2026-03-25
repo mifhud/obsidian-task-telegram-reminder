@@ -11,16 +11,21 @@ import { scanVault, filterRelevantTasks } from './scanner.js';
 import { evaluateReminders, getReminderSummary } from './reminder-engine.js';
 import {
   loadSentLog,
-  saveSentLog,
   recordSentReminder,
   cleanupSentLog,
   needsCleanup,
   getSentLogStats,
-} from './sent-log.js';
+} from './sent-log-mysql.js';
+import {
+  createDatabasePool,
+  initDatabase,
+  testConnection,
+  closePool,
+} from './database.js';
 import { createBot, sendReminders, sendStartupMessage } from './notifier.js';
 import { createSchedulerFromConfig, describeCron } from './scheduler.js';
 import { registerBotCommands, startPolling, stopPolling } from './bot-commands.js';
-import type { Config, SentLog } from './types.js';
+import type { Config } from './types.js';
 import type { Scheduler } from './scheduler.js';
 import TelegramBot from 'node-telegram-bot-api';
 
@@ -28,7 +33,6 @@ import TelegramBot from 'node-telegram-bot-api';
 let config: Config;
 let bot: TelegramBot;
 let scheduler: Scheduler | null = null;
-let sentLog: SentLog;
 let isShuttingDown = false;
 
 /**
@@ -59,6 +63,9 @@ async function runScanCycle(dryRun: boolean = false): Promise<void> {
       relevant: relevantTasks.length,
       withDueDate: relevantTasks.filter((t) => t.dueDate).length,
     });
+
+    // Load current sent log for evaluation
+    const sentLog = await loadSentLog();
 
     // Evaluate which reminders to send
     const reminders = evaluateReminders(
@@ -96,19 +103,14 @@ async function runScanCycle(dryRun: boolean = false): Promise<void> {
     // Record sent reminders (unless dry run)
     if (!dryRun) {
       for (const reminder of reminders) {
-        recordSentReminder(sentLog, reminder);
+        await recordSentReminder(reminder);
       }
-      saveSentLog(config.sentLogPath, sentLog);
       logger.debug('Sent log updated');
     }
 
     // Cleanup old entries if needed
-    if (needsCleanup(sentLog)) {
-      const removed = cleanupSentLog(sentLog);
-      if (removed > 0) {
-        logger.info('Cleaned up old sent log entries', { removed });
-        saveSentLog(config.sentLogPath, sentLog);
-      }
+    if (needsCleanup()) {
+      await cleanupSentLog();
     }
 
     const totalDuration = Date.now() - startTime;
@@ -142,12 +144,11 @@ async function shutdown(signal: string): Promise<void> {
     stopPolling(bot);
   }
 
-  // Save sent log
+  // Close database pool
   try {
-    saveSentLog(config.sentLogPath, sentLog);
-    logger.info('Sent log saved');
+    await closePool();
   } catch (error) {
-    logger.error('Failed to save sent log on shutdown', { error });
+    logger.error('Failed to close database pool on shutdown', { error });
   }
 
   logger.info('Shutdown complete');
@@ -179,9 +180,24 @@ async function main(): Promise<void> {
     dryRun,
   });
 
-  // Load sent log
-  sentLog = loadSentLog(config.sentLogPath);
-  const logStats = getSentLogStats(sentLog);
+  // Initialize database
+  logger.info('Connecting to MySQL database...');
+  try {
+    createDatabasePool(config.mysql);
+    const connected = await testConnection();
+    if (!connected) {
+      logger.error('Failed to connect to MySQL database');
+      process.exit(1);
+    }
+    await initDatabase();
+    logger.info('Database connection established');
+  } catch (error) {
+    logger.error('Database initialization failed', { error });
+    process.exit(1);
+  }
+
+  // Get sent log stats
+  const logStats = await getSentLogStats();
   logger.info('Sent log loaded', logStats);
 
   // Create Telegram bot
@@ -212,6 +228,7 @@ async function main(): Promise<void> {
 
   if (dryRun) {
     logger.info('Dry run complete, exiting');
+    await closePool();
     process.exit(0);
   }
 
