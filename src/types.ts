@@ -107,12 +107,28 @@ export interface AppConfig {
   includeScheduled: boolean;
   /** Whether to parse Dataview format [due:: YYYY-MM-DD] */
   dataviewFormat: boolean;
-  /** Path to the sent reminders log file */
-  sentLogPath: string;
   /** IANA timezone string */
   timezone: string;
   /** Logging level */
   logLevel: 'debug' | 'info' | 'warn' | 'error';
+}
+
+/**
+ * MySQL database configuration
+ */
+export interface MySqlConfig {
+  /** Database host */
+  host: string;
+  /** Database port */
+  port: number;
+  /** Database user */
+  user: string;
+  /** Database password */
+  password: string;
+  /** Database name */
+  database: string;
+  /** Additional mysql2 connection options (parsed from JSON) */
+  options?: Record<string, unknown>;
 }
 
 /**
@@ -125,6 +141,8 @@ export interface EnvConfig {
   telegramChatId: string;
   /** Absolute path to Obsidian vault */
   vaultPath: string;
+  /** MySQL database configuration */
+  mysql: MySqlConfig;
 }
 
 /**
