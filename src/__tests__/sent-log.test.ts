@@ -35,6 +35,7 @@ const createMockReminder = (overrides: Partial<Reminder> = {}): Reminder => ({
     recurrence: null,
   },
   reminderType: 'due-now',
+  reminderSource: 'due',
   minutesUntilDue: 0,
   thresholdMinutes: 0,
   key: 'test-key-123',
