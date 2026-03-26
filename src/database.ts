@@ -57,7 +57,7 @@ export async function initDatabase(): Promise<void> {
   const logger = getLogger();
   const db = getPool();
 
-  const createTableSQL = `
+  const createSentRemindersSQL = `
     CREATE TABLE IF NOT EXISTS sent_reminders (
       id INT AUTO_INCREMENT PRIMARY KEY,
       reminder_key VARCHAR(512) NOT NULL UNIQUE,
@@ -71,8 +71,31 @@ export async function initDatabase(): Promise<void> {
     )
   `;
 
+  const createVaultTasksSQL = `
+    CREATE TABLE IF NOT EXISTS vault_tasks (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      file_path VARCHAR(1024) NOT NULL,
+      line_number INT NOT NULL,
+      raw_line TEXT NOT NULL,
+      description TEXT NOT NULL,
+      is_done TINYINT(1) NOT NULL DEFAULT 0,
+      due_date DATE NULL,
+      scheduled_date DATE NULL,
+      start_date DATE NULL,
+      created_date DATE NULL,
+      end_time VARCHAR(5) NULL,
+      priority ENUM('high','medium','low','none') NOT NULL DEFAULT 'none',
+      recurrence VARCHAR(255) NULL,
+      synced_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE KEY uq_file_line (file_path(500), line_number),
+      INDEX idx_due_date (due_date),
+      INDEX idx_scheduled_date (scheduled_date)
+    )
+  `;
+
   try {
-    await db.execute(createTableSQL);
+    await db.execute(createSentRemindersSQL);
+    await db.execute(createVaultTasksSQL);
     logger.info('Database schema initialized');
   } catch (error) {
     logger.error('Failed to initialize database schema', { error });

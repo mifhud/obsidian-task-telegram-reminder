@@ -101,12 +101,8 @@ export interface AppConfig {
   reminderMinutes: number[];
   /** Minutes after due datetime to send overdue reminders (threshold-based, sorted descending) */
   overdueMinutes: number[];
-  /** Folders to exclude from scanning */
-  excludeFolders: string[];
   /** Whether to also remind on scheduled dates */
   includeScheduled: boolean;
-  /** Whether to parse Dataview format [due:: YYYY-MM-DD] */
-  dataviewFormat: boolean;
   /** IANA timezone string */
   timezone: string;
   /** Logging level */
@@ -139,8 +135,6 @@ export interface EnvConfig {
   telegramBotToken: string;
   /** Target Telegram chat ID */
   telegramChatId: string;
-  /** Absolute path to Obsidian vault */
-  vaultPath: string;
   /** MySQL database configuration */
   mysql: MySqlConfig;
 }
@@ -149,20 +143,6 @@ export interface EnvConfig {
  * Complete configuration combining env and app config
  */
 export interface Config extends EnvConfig, AppConfig {}
-
-/**
- * Result of a scan cycle
- */
-export interface ScanResult {
-  /** All tasks found in the vault */
-  tasks: Task[];
-  /** Number of files scanned */
-  filesScanned: number;
-  /** Number of files skipped due to errors */
-  filesSkipped: number;
-  /** Duration of the scan in milliseconds */
-  scanDurationMs: number;
-}
 
 /**
  * Result of sending reminders

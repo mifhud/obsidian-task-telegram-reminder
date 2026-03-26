@@ -15,9 +15,7 @@ const DEFAULT_CONFIG: AppConfig = {
   scanCron: '0 8 * * *',
   reminderMinutes: [1440, 60, 15, 0],
   overdueMinutes: [4320, 1440],
-  excludeFolders: ['.obsidian', '.trash', 'templates', 'archive', 'archives'],
   includeScheduled: false,
-  dataviewFormat: false,
   timezone: 'Asia/Jakarta',
   logLevel: 'info',
 };
@@ -31,15 +29,6 @@ function requireEnv(name: string): string {
     throw new Error(`Missing required environment variable: ${name}`);
   }
   return value;
-}
-
-/**
- * Validates that a path exists on the filesystem
- */
-function validatePath(path: string, description: string): void {
-  if (!existsSync(path)) {
-    throw new Error(`${description} does not exist: ${path}`);
-  }
 }
 
 /**
@@ -124,13 +113,6 @@ function loadEnvConfig(): EnvConfig {
 
   const telegramBotToken = requireEnv('TELEGRAM_BOT_TOKEN');
   const telegramChatId = requireEnv('TELEGRAM_CHAT_ID');
-  const vaultPath = requireEnv('VAULT_PATH');
-
-  // Resolve vault path to absolute
-  const resolvedVaultPath = resolve(vaultPath);
-
-  // Validate vault path exists
-  validatePath(resolvedVaultPath, 'Vault path');
 
   // Load MySQL config
   const mysql = loadMysqlConfig();
@@ -138,7 +120,6 @@ function loadEnvConfig(): EnvConfig {
   return {
     telegramBotToken,
     telegramChatId,
-    vaultPath: resolvedVaultPath,
     mysql,
   };
 }
@@ -174,10 +155,6 @@ function loadAppConfig(configPath: string = './config.json'): AppConfig {
 
     if (!Array.isArray(config.overdueMinutes)) {
       throw new Error('overdueMinutes must be an array of numbers');
-    }
-
-    if (!Array.isArray(config.excludeFolders)) {
-      throw new Error('excludeFolders must be an array of strings');
     }
 
     return config;

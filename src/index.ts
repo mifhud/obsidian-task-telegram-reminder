@@ -7,7 +7,7 @@
 
 import { loadConfig, loadConfigSafe } from './config.js';
 import { createLogger, setLogger, getLogger } from './logger.js';
-import { scanVault, filterRelevantTasks } from './scanner.js';
+import { readTasksFromDb } from './task-reader.js';
 import { evaluateReminders, getReminderSummary } from './reminder-engine.js';
 import {
   loadSentLog,
@@ -18,6 +18,7 @@ import {
 } from './sent-log-mysql.js';
 import {
   createDatabasePool,
+  getPool,
   initDatabase,
   testConnection,
   closePool,
@@ -45,22 +46,10 @@ async function runScanCycle(dryRun: boolean = false): Promise<void> {
   logger.info('Starting scan cycle...');
 
   try {
-    // Scan vault for tasks
-    const scanResult = scanVault(config.vaultPath, config);
-    logger.info('Vault scanned', {
-      filesScanned: scanResult.filesScanned,
-      filesSkipped: scanResult.filesSkipped,
-      totalTasks: scanResult.tasks.length,
-      durationMs: scanResult.scanDurationMs,
-    });
-
-    // Filter to relevant tasks
-    const relevantTasks = filterRelevantTasks(
-      scanResult.tasks,
-      config.includeScheduled
-    );
-    logger.debug('Filtered relevant tasks', {
-      relevant: relevantTasks.length,
+    // Read tasks from vault_tasks DB table (written by Obsidian plugin)
+    const relevantTasks = await readTasksFromDb(getPool(), config.includeScheduled);
+    logger.info('Tasks loaded from DB', {
+      totalTasks: relevantTasks.length,
       withDueDate: relevantTasks.filter((t) => t.dueDate).length,
     });
 
@@ -175,7 +164,6 @@ async function main(): Promise<void> {
   setLogger(logger);
 
   logger.info('Obsidian Telegram Reminder starting...', {
-    vaultPath: config.vaultPath,
     timezone: config.timezone,
     dryRun,
   });

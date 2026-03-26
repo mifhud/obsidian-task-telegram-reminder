@@ -7,7 +7,8 @@ import TelegramBot from 'node-telegram-bot-api';
 import { addDays } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
 import type { Config, Task, Reminder } from './types.js';
-import { scanVault, filterRelevantTasks } from './scanner.js';
+import { readTasksFromDb } from './task-reader.js';
+import { getPool } from './database.js';
 import { calculateMinutesUntilDue } from './reminder-engine.js';
 import { formatStatusMessage, formatUpcomingMessage } from './notifier.js';
 import { getLogger } from './logger.js';
@@ -34,8 +35,7 @@ export function registerBotCommands(
     logger.info('Processing /status command');
 
     try {
-      const result = scanVault(config.vaultPath, config);
-      const relevantTasks = filterRelevantTasks(result.tasks, config.includeScheduled);
+      const relevantTasks = await readTasksFromDb(getPool(), config.includeScheduled);
 
       const now = new Date();
       const todayTasks: Reminder[] = [];
@@ -98,8 +98,7 @@ export function registerBotCommands(
     logger.info('Processing /upcoming command');
 
     try {
-      const result = scanVault(config.vaultPath, config);
-      const relevantTasks = filterRelevantTasks(result.tasks, config.includeScheduled);
+      const relevantTasks = await readTasksFromDb(getPool(), config.includeScheduled);
 
       const now = new Date();
       const upcomingReminders: Reminder[] = [];
