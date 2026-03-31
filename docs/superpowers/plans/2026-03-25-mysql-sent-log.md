@@ -656,7 +656,7 @@ version: '3.8'
 services:
   obsidian-reminder:
     build: .
-    container_name: obsidian-telegram-reminder
+    container_name: obsidian-task-telegram-reminder
     restart: unless-stopped
     
     environment:

@@ -2,7 +2,7 @@
 
 ## Context
 
-The current `obsidian-telegram-reminder` app (on `mysql` branch) is a standalone Node.js service that directly reads markdown files from the Obsidian vault filesystem using `glob`/`fs`. This creates a tight coupling to the filesystem and requires `VAULT_PATH` configuration.
+The current `obsidian-task-telegram-reminder` app (on `mysql` branch) is a standalone Node.js service that directly reads markdown files from the Obsidian vault filesystem using `glob`/`fs`. This creates a tight coupling to the filesystem and requires `VAULT_PATH` configuration.
 
 **Goal**: Split into two parts:
 1. **New Obsidian plugin** — scans the vault using the Obsidian API, writes tasks to a `vault_tasks` MySQL table on a schedule
@@ -55,7 +55,7 @@ Settings tab with text inputs for MySQL connection, interval, exclude folders, a
 
 ### Task Parser (`src/task-parser.ts`)
 
-Port pure functions from `/root/01-projects/me/obsidian-telegram-reminder/src/scanner.ts`:
+Port pure functions from `/root/01-projects/me/obsidian-task-telegram-reminder/src/scanner.ts`:
 - Constants: `TASK_LINE_REGEX`, `DATE_PATTERNS`, `DATAVIEW_DATE_PATTERNS`, `PRIORITY_PATTERNS`, `RECURRENCE_REGEX`
 - Functions: `extractDate`, `extractPriority`, `extractRecurrence`, `cleanDescription`, `parseTaskLine`, `shouldExclude`
 
@@ -143,7 +143,7 @@ Copy from sample plugin. Add `mysql2` and `mysql2/promise` to the `external` arr
 
 ## Part 2: Modify Telegram Reminder App
 
-Working in `/root/01-projects/me/obsidian-telegram-reminder` on the `mysql` branch.
+Working in `/root/01-projects/me/obsidian-task-telegram-reminder` on the `mysql` branch.
 
 ### New file: `src/task-reader.ts`
 

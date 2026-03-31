@@ -323,7 +323,7 @@ cron.schedule(SCAN_CRON, async () => {
 ## 5. Project Structure
 
 ```
-obsidian-telegram-reminder/
+obsidian-task-telegram-reminder/
 ├── src/
 │   ├── index.ts              # Entry point
 │   ├── config.ts             # Configuration loader
@@ -394,11 +394,11 @@ After=network.target
 [Service]
 Type=simple
 User=<your-user>
-WorkingDirectory=/path/to/obsidian-telegram-reminder
+WorkingDirectory=/path/to/obsidian-task-telegram-reminder
 ExecStart=/usr/bin/node dist/index.js
 Restart=on-failure
 RestartSec=10
-EnvironmentFile=/path/to/obsidian-telegram-reminder/.env
+EnvironmentFile=/path/to/obsidian-task-telegram-reminder/.env
 
 [Install]
 WantedBy=multi-user.target

@@ -2,7 +2,7 @@
 
 ## Context
 
-The `obsidian-telegram-reminder` app currently scans the vault filesystem directly. We're splitting this into two parts: an Obsidian plugin that syncs tasks to MySQL, and a modified telegram app that reads from MySQL. This plan covers **Part 1 only** — the Obsidian plugin at `/root/01-projects/me/obsidian-task-sync`.
+The `obsidian-task-telegram-reminder` app currently scans the vault filesystem directly. We're splitting this into two parts: an Obsidian plugin that syncs tasks to MySQL, and a modified telegram app that reads from MySQL. This plan covers **Part 1 only** — the Obsidian plugin at `/root/01-projects/me/obsidian-task-sync`.
 
 The template project is already scaffolded from the sample plugin with working build pipeline, settings system, and plugin lifecycle. We need to replace the sample content with task-sync logic.
 
@@ -31,12 +31,12 @@ The template project is already scaffolded from the sample plugin with working b
 ## Files to Create
 
 ### 4. `src/types.ts` — Task & Priority types
-Port only these from `/root/01-projects/me/obsidian-telegram-reminder/src/types.ts`:
+Port only these from `/root/01-projects/me/obsidian-task-telegram-reminder/src/types.ts`:
 - `Priority` type (line 8)
 - `Task` interface (lines 13-38)
 
 ### 5. `src/task-parser.ts` — Pure parsing logic
-Port from `/root/01-projects/me/obsidian-telegram-reminder/src/scanner.ts`:
+Port from `/root/01-projects/me/obsidian-task-telegram-reminder/src/scanner.ts`:
 
 **Constants** (lines 15-51):
 - `TASK_LINE_REGEX` — extend to `/^(\s*[-*]|\d+\.)\s+\[([ xX/])\]\s+(.+)$/` (add `/` for in-progress)

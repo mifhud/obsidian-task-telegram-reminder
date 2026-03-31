@@ -1,4 +1,4 @@
-# Obsidian Telegram Reminder
+# Obsidian Task Telegram Reminder
 
 A standalone Node.js background service that monitors your Obsidian vault for tasks with due dates and sends you Telegram reminders.
 
@@ -55,8 +55,8 @@ Enable `dataviewFormat` in config.json to also parse:
 1. **Clone and install**
 
 ```bash
-git clone https://github.com/your-username/obsidian-telegram-reminder.git
-cd obsidian-telegram-reminder
+git clone https://github.com/your-username/obsidian-task-telegram-reminder.git
+cd obsidian-task-telegram-reminder
 npm install
 ```
 
