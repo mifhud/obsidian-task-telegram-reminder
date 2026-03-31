@@ -22,10 +22,10 @@ interface VaultTaskRow {
   recurrence: string | null;
 }
 
-function formatDate(value: string | null): string | null {
+function formatDate(value: string | Date | null): string | null {
   if (!value) return null;
-  // MySQL DATE columns come back as 'YYYY-MM-DD' strings or Date objects
   if (typeof value === 'string') return value.substring(0, 10);
+  if (value instanceof Date) return value.toISOString().split('T')[0];
   return null;
 }
 
