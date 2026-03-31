@@ -1,5 +1,5 @@
 {
-  "name": "obsidian-telegram-reminder",
+  "name": "obsidian-task-telegram-reminder",
   "version": "1.0.0",
   "description": "A standalone Node.js background process that monitors an Obsidian vault for tasks with due dates and sends Telegram reminders",
   "main": "dist/index.js",
